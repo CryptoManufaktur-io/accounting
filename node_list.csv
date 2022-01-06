@@ -1,7 +1,7 @@
 ﻿type,worksheet-title,url,address,provider,baseurl,apikey
-evm,Mainnet OCR,https://mainnet.infura.io/v3/8d8abcafe82243b8b47a2ad552a8ab77,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.etherscan.io,
-evm,Mainnet Keeper,https://mainnet.infura.io/v3/8d8abcafe82243b8b47a2ad552a8ab77,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.etherscan.io,
-evm,Polygon OCR,https://polygon-mainnet.infura.io/v3/8d8abcafe82243b8b47a2ad552a8ab77,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.polygonscan.com,
-evm,Polygon FM,https://polygon-mainnet.infura.io/v3/8d8abcafe82243b8b47a2ad552a8ab77,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.polygonscan.com,
-evm,Polygon Keeper,https://polygon-mainnet.infura.io/v3/8d8abcafe82243b8b47a2ad552a8ab77,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.polygonscan.com,
-evm,Opti FM,https://optimism-mainnet.infura.io/v3/8d8abcafe82243b8b47a2ad552a8ab77,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan-all-cf,https://api-optimistic.etherscan.io,
+evm,Mainnet OCR,https://mainnet.infura.io/v3/<project-id>,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.etherscan.io,'',
+evm,Mainnet Keeper,https://mainnet.infura.io/v3/<project-id>,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.etherscan.io,'',
+evm,Polygon OCR,https://polygon-mainnet.infura.io/v3/<project-id>,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.polygonscan.com,'',
+evm,Polygon FM,https://polygon-mainnet.infura.io/v3/<project-id>,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.polygonscan.com,'',
+evm,Polygon Keeper,https://polygon-mainnet.infura.io/v3/<project-id>,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan,https://api.polygonscan.com,'',
+evm,Opti FM,https://optimism-mainnet.infura.io/v3/<project-id>,0x999611CdCd49DaF6E152E383ad664DEF5f7d4681,etherscan-all-cf,https://api-optimistic.etherscan.io,'',
