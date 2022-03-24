@@ -4,6 +4,7 @@
 # Meant mostly for P&L purposes, though the balances are useful for taxes.
 # Payment recording isn't accurate enough for the IRS, though this script could dump=
 # the data into a separate sheet for tax purposes.
+import argparse
 import pygsheets
 from datetime import datetime, date, timedelta
 from time import sleep, mktime
@@ -15,10 +16,7 @@ import json
 import csv
 import numpy as np
 
-
-
 payment_worksheet_title = "All payments"
-
 
 def verify_request(method, url, payload=None, headers=None, session=None):
     '''
@@ -46,18 +44,13 @@ def verify_request(method, url, payload=None, headers=None, session=None):
         return resp
     except requests.exceptions.ConnectionError as errc:
         print('Connection error:', errc)
-        exit(1)
     except requests.exceptions.Timeout as errt:
         print('Timeout error:', errt)
-        exit(1)
     except requests.exceptions.RequestException as err:
         print('Unexpected exception:',err)
-        exit(1)
 
 def get_balance(type, url, address):
     '''
-    Combined get_evm_balance and get_sol_balance to one function
-    Logic implemented based on node type 
     Params:
         type: node type (evm or sol)
         url: rpc url
@@ -77,6 +70,11 @@ def get_balance(type, url, address):
         payload = f'{{"jsonrpc":"2.0","method":"getBalance","params":["{address}"],"id":1}}'
         r = verify_request(method='POST', url=url, payload=payload, headers=headers)
         balance = json.loads(r.text)['result']['value'] / 1000000000
+    elif type == 'terra':
+        headers = {'accept': 'application/json'}
+        url = url+'/cosmos/bank/v1beta1/balances/'+address+'/by_denom?denom=uluna'
+        r = verify_request(method='GET', url=url, headers=headers)
+        balance = int(json.loads(r.text)['balance']['amount']) / 1000000
     else:
         raise SystemExit('Please enter valid node type')
     return balance
@@ -147,7 +145,6 @@ def sum_incoming_txs(type, address, txs, contract=None):
                 sum += int(tx['changeAmount']) / 10 ** int(tx['decimals'])
     elif type == 'sol':
         for tx in txs_json['data']:
-            print(tx)
             if tx['owner'].lower() == address.lower() and tx['changeType'] == 'inc':
                 sum += int(tx['changeAmount']) / 10 ** int(tx['decimals'])
     else:
@@ -167,7 +164,7 @@ def get_data_from_csv(data_csv):
     '''
     Parse rows of csv file as a dictionary, append result to list
     Params:
-        data_csv: csv file in 'data' directory containing node or wallet information
+        data_csv: csv file in 'config' directory containing node or wallet information
     Returns
         data_list
     '''
@@ -178,24 +175,6 @@ def get_data_from_csv(data_csv):
             data_list.append(line)
         return data_list
 
-def set_worksheet_balance(sh, node, row_to_change, day_of_year, utc_time_str, balance):
-    '''
-    Inserts row with columns Day, Balance, Time
-    Params:
-        sh: google worksheet
-        node: node containing worksheet title
-        row_to_change: row in sheet to update
-        day_of_year: current day of year
-        utc_time_str: utc timestamp
-        balance: current balance 
-    Returns:
-        None 
-    '''
-    wks = sh.worksheet_by_title(node['worksheet-title'])
-    # Assumes Date, Time, Balance as the first three column
-    wks.insert_rows(row_to_change - 1, values=[[day_of_year, utc_time_str, balance]])
-    print('Successfully updated: ', node['worksheet-title'])
-
 def main():
     # Balances
     day_of_year = datetime.utcnow().timetuple().tm_yday
@@ -205,23 +184,27 @@ def main():
 
     # Google Sheets
     sheet_title = "CMF Accounting 2022"
-    gc = pygsheets.authorize(service_file='./get-chainlink-activity-29b9ab8e8573.json')
+    gc = pygsheets.authorize(service_file='./config/gsheets-accesskey.json')
     sh = gc.open(sheet_title)
 
     # # CSV containing node list
-    node_list = get_data_from_csv('./data/node_list.csv')
+    node_list = get_data_from_csv('./config/node_list.csv')
     for node in node_list:
         # Throws exception if request is valid but error in the return data
         try:
             balance = get_balance(node['type'], node['url'], node['address'])
         except BaseException as e:
             print('Request is not returning valid data:', e)
-            exit(1)
-        set_worksheet_balance(sh, node, row_to_change, day_of_year, utc_time_str, balance)
-
+            continue
+        if args.dry_run:
+            print(node['worksheet-title'],'Balance:',balance)
+        else:
+            # Assumes Date, Time, Balance as the first three columns
+            wks.update_value((row_to_change,2),utc_time_str)
+            wks.update_value((row_to_change,3),balance)
 
     # We need it to be the next day - snooze for 70s assuming the script starts at 23:59
-    #sleep(70)
+    sleep(70)
 
     today = datetime.utcnow()
     yesterday = datetime.utcnow() - timedelta(days=1)
@@ -238,7 +221,7 @@ def main():
 
     wks = sh.worksheet_by_title(payment_worksheet_title)
     # CSV containing wallet list
-    wallet_list = get_data_from_csv('/.data/wallet_list.csv')
+    wallet_list = get_data_from_csv('./config/wallet_list.csv')
     for wallet in wallet_list:
         if wallet['provider'] == 'etherscan':
             start_block = get_block_etherscan(start_unix,'after',wallet['apikey'],wallet['baseurl'])
@@ -259,16 +242,18 @@ def main():
                     break
                 token_sum += sum_incoming_txs('spl', wallet['address'],wallet['contract'],token_txs)
                 offset += 50
+        elif wallet['provider'] == 'nada':
+            continue
         else:
             raise ValueError('Unknown API provider',wallet['provider'],', please fix the wallet_list.')
         if token_sum > 0:
-            #print(wallet['name'],'Payment:',token_sum)
-            wks.update_value((row_to_change,wallet['column']),token_sum)
-        else:
-            print('Token_sum=0. No updates made to ', wks)
+            if args.dry_run:
+                print(wallet['name'],'Payment:',token_sum)
+            else:
+                wks.update_value((row_to_change,wallet['column']),token_sum)
         sleep(3) # Avoid rate limits
-        # Funding
-        # Assumes that each worksheet has 367/368 rows, one for each day of the year, starting with header row and then 12/31 of the previous year
+    # Funding
+    # Assumes that each worksheet has 367/368 rows, one for each day of the year, starting with header row and then 12/31 of the previous year
     row_to_change = day_of_year + 2
 
     # The API returns the last 10,000 txs. For busy nodes this isn't enough; detecting funding is best-effort
@@ -294,15 +279,20 @@ def main():
                     break
                 funding += sum_incoming_txs(node['address'], txs)
                 offset += 50
+        elif node['provider'] == 'nada':
+            continue
         else:
             raise ValueError('Unknown API provider', node['provider'], ', please fix the node_list.')
-        wks = sh.worksheet_by_title(node['worksheet-title'])
-        # Assumes Date, Time, Balance, Funding as the first four columns
         if funding > 0:
-            # print(node['worksheet-title'],'Funding:',funding)
-            wks.update_value((row_to_change, 4), funding)
-        else:
-            print('Funding = 0. No updates made to ', wks)
+            if args.dry_run:
+                print(node['worksheet-title'],'Funding:',funding)
+            else:
+                # Assumes Date, Time, Balance, Funding as the first four columns
+                wks = sh.worksheet_by_title(node['worksheet-title'])
+                wks.update_value((row_to_change, 4), funding)
         sleep(3)  # Avoid rate limits
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dry-run", help="Print results and do not update Google sheet", action="store_true")
+    args = parser.parse_args()
     main()

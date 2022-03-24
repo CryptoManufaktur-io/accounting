@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 import pygsheets
 from datetime import datetime, date, timedelta
 from time import sleep
@@ -23,6 +24,7 @@ coin_list = [
   {'ticker':'solusd', 'column': 8, 'provider':'tiingo'},
   {'ticker':'rocket-pool', 'column': 9, 'provider':'coingecko'},
   {'ticker':'usdcusd', 'column': 10, 'provider':'tiingo'},
+  {'ticker':'lunausd', 'column': 11, 'provider':'tiingo'}
   ]
 
 def get_closing_price_tiingo(ticker):
@@ -39,6 +41,10 @@ def get_closing_price_coingecko(ticker):
   price = json.loads(r.text)['market_data']['current_price']['usd']
   sleep(2) # Avoid 429s
   return(price)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--dry-run", help="Print results and do not update Google sheet", action="store_true")
+args = parser.parse_args()
 
 gc = pygsheets.authorize(service_file='./gc-credentials.json')
 sh = gc.open(sheet_title)
@@ -59,7 +65,9 @@ for coin in coin_list:
   else:
     print('Unknown API provider',coin['provider'],', please fix the coin_list.')
     exit(1)
-  #print(coin['ticker'],price)
-  wks.update_value((row_to_change,coin['column']),price)
+  if args.dry_run:
+    print(coin['ticker'],price)
+  else:
+    wks.update_value((row_to_change,coin['column']),price)
 
 exit(0)
