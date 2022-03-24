@@ -1,0 +1,6 @@
+﻿type,worksheet-title,url,address,provider,baseurl,apikey
+evm,Mainnet OCR,https://mainnet.infura.io/v3/<project-id>,<node-ether-address>,etherscan,https://api.etherscan.io,'',
+evm,Polygon OCR,https://polygon-mainnet.infura.io/v3/<project-id>,<node-polygon-address>,etherscan,https://api.polygonscan.com,'',
+evm,Optimism OCR,https://optimism-mainnet.infura.io/v3/<project-id>,<node-optimistic-address>,etherscan-all-cf,https://api-optimistic.etherscan.io,'',
+sol,Solana OCR,https://<your-solana-rpc>,<node-sol-address>,solana,https://public-api.solscan.io,''
+terra,Terra OCR,https://lcd.terra.dev,<node-terra-address>,nada,'',''
