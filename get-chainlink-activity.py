@@ -200,6 +200,7 @@ def main():
             print(node['worksheet-title'],'Balance:',balance)
         else:
             # Assumes Date, Time, Balance as the first three columns
+            wks = sh.worksheet_by_title(node['worksheet-title'])
             wks.update_value((row_to_change,2),utc_time_str)
             wks.update_value((row_to_change,3),balance)
 
