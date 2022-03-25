@@ -15,8 +15,7 @@ from urllib.parse import urlparse
 import json
 import csv
 import numpy as np
-
-payment_worksheet_title = "All payments"
+import toml
 
 def verify_request(method, url, payload=None, headers=None, session=None):
     '''
@@ -160,36 +159,22 @@ def sum_incoming_txs_between(address,txs,start_time,end_time):
       sum += int(tx['value']) / 1000000000000000000
   return sum
 
-def get_data_from_csv(data_csv):
-    '''
-    Parse rows of csv file as a dictionary, append result to list
-    Params:
-        data_csv: csv file in 'config' directory containing node or wallet information
-    Returns
-        data_list
-    '''
-    with open(data_csv, encoding='utf-8-sig') as f:
-        reader = csv.DictReader(f)
-        data_list = []
-        for line in reader:
-            data_list.append(line)
-        return data_list
-
 def main():
-    # Balances
+    config = toml.load("./config/config.toml")
+    # Google Sheets
+    year = datetime.utcnow().strftime("%Y")
+    gc = pygsheets.authorize(service_file='./config/gc-credentials.json')
+    sh = gc.open(config['sheet']+" "+year)
+
+    # Get Balances
     day_of_year = datetime.utcnow().timetuple().tm_yday
     # Assumes that each worksheet has 367/368 rows, one for each day of the year, starting with header row and then 12/31 of the previous year
     row_to_change = day_of_year + 2
     utc_time_str = datetime.utcnow().strftime("%H:%M")
 
-    # Google Sheets
-    sheet_title = "CMF Accounting 2022"
-    gc = pygsheets.authorize(service_file='./config/gsheets-accesskey.json')
-    sh = gc.open(sheet_title)
-
-    # # CSV containing node list
-    node_list = get_data_from_csv('./config/node_list.csv')
-    for node in node_list:
+    node_list = config['nodes']
+    for entry in node_list:
+        node = node_list[entry]
         # Throws exception if request is valid but error in the return data
         try:
             balance = get_balance(node['type'], node['url'], node['address'])
@@ -204,8 +189,12 @@ def main():
             wks.update_value((row_to_change,2),utc_time_str)
             wks.update_value((row_to_change,3),balance)
 
+    # Get Payments
+    wks = sh.worksheet_by_title(config["worksheets"]["payment"])
+    wallet_list = config['wallets']
     # We need it to be the next day - snooze for 70s assuming the script starts at 23:59
-    sleep(70)
+    if not args.dry_run:
+        sleep(70)
 
     today = datetime.utcnow()
     yesterday = datetime.utcnow() - timedelta(days=1)
@@ -215,15 +204,10 @@ def main():
     end_unix = int(mktime(end.timetuple()))
     day_of_year = yesterday.timetuple().tm_yday
 
-    # Payments
     # Assumes the worksheet has 366/367 rows, one for each day of the year, starting with header row and then 1/1 of the current year
     row_to_change = day_of_year + 1
-    # Payment worksheet
-
-    wks = sh.worksheet_by_title(payment_worksheet_title)
-    # CSV containing wallet list
-    wallet_list = get_data_from_csv('./config/wallet_list.csv')
-    for wallet in wallet_list:
+    for entry in wallet_list:
+        wallet = wallet_list[entry]
         if wallet['provider'] == 'etherscan':
             start_block = get_block_etherscan(start_unix,'after',wallet['apikey'],wallet['baseurl'])
             end_block = get_block_etherscan(end_unix,'before',wallet['apikey'],wallet['baseurl'])
@@ -249,11 +233,12 @@ def main():
             raise ValueError('Unknown API provider',wallet['provider'],', please fix the wallet_list.')
         if token_sum > 0:
             if args.dry_run:
-                print(wallet['name'],'Payment:',token_sum)
+                print(entry,'Payment:',token_sum)
             else:
                 wks.update_value((row_to_change,wallet['column']),token_sum)
         sleep(3) # Avoid rate limits
-    # Funding
+'''
+    # Get Funding
     # Assumes that each worksheet has 367/368 rows, one for each day of the year, starting with header row and then 12/31 of the previous year
     row_to_change = day_of_year + 2
 
@@ -292,6 +277,7 @@ def main():
                 wks = sh.worksheet_by_title(node['worksheet-title'])
                 wks.update_value((row_to_change, 4), funding)
         sleep(3)  # Avoid rate limits
+'''
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", help="Print results and do not update Google sheet", action="store_true")
