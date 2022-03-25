@@ -17,6 +17,8 @@ import csv
 import numpy as np
 import toml
 
+# Assumes that google sheet credentials are in ./config/gc-credentials.json
+
 def verify_request(method, url, payload=None, headers=None, session=None):
     '''
     Verifies valid request was sent
@@ -33,25 +35,25 @@ def verify_request(method, url, payload=None, headers=None, session=None):
             throws exception, exit program
     '''
     try:
-        if method == 'POST':
+        if method == "POST":
             resp = requests.post(url, data=payload, headers=headers)
-        elif method == 'GET' and session:
+        elif method == "GET" and session:
             resp = session.get(url, headers=headers)
-        elif method == 'GET' and not session:
+        elif method == "GET" and not session:
             resp = requests.get(url, headers=headers)
         resp.raise_for_status()
         return resp
     except requests.exceptions.ConnectionError as errc:
-        print('Connection error:', errc)
+        print("Connection error:", errc)
     except requests.exceptions.Timeout as errt:
-        print('Timeout error:', errt)
+        print("Timeout error:", errt)
     except requests.exceptions.RequestException as err:
-        print('Unexpected exception:',err)
+        print("Unexpected exception:",err)
 
 def get_balance(type, url, address):
     '''
     Params:
-        type: node type (evm or sol)
+        type: node type (etherscan,etherscan-cf,solana,terra)
         url: rpc url
         address: wallet address
     Returns:
@@ -60,45 +62,45 @@ def get_balance(type, url, address):
         else
             exception
     '''
-    headers = {'content-type': 'application/json', 'Accept-Charset': 'UTF-8'}
-    if type == 'evm':
+    headers = {"content-type": "application/json", "Accept-Charset": "UTF-8"}
+    if type == "etherscan" or type == "etherscan-cf":
         payload = f'{{"jsonrpc":"2.0","method":"eth_getBalance","params":["{address}", "latest"],"id":1}}'
         r = verify_request(method='POST', url=url, payload=payload, headers=headers)
         balance = int(json.loads(r.text)['result'],16) / 1000000000000000000
-    elif type == 'sol':
+    elif type == "solana":
         payload = f'{{"jsonrpc":"2.0","method":"getBalance","params":["{address}"],"id":1}}'
         r = verify_request(method='POST', url=url, payload=payload, headers=headers)
         balance = json.loads(r.text)['result']['value'] / 1000000000
-    elif type == 'terra':
-        headers = {'accept': 'application/json'}
-        url = url+'/cosmos/bank/v1beta1/balances/'+address+'/by_denom?denom=uluna'
+    elif type == "terra":
+        headers = {"accept": "application/json"}
+        url = f"{url}/cosmos/bank/v1beta1/balances/{address}/by_denom?denom=uluna"
         r = verify_request(method='GET', url=url, headers=headers)
         balance = int(json.loads(r.text)['balance']['amount']) / 1000000
     else:
-        raise SystemExit('Please enter valid node type')
+        raise SystemExit("Please enter valid node type")
     return balance
 
 def get_block_etherscan(unixtime, closest, apikey, baseurl):
-    url = f'{baseurl}/api?module=block&action=getblocknobytime&timestamp={unixtime}&closest={closest}&apikey={apikey}'
-    r = verify_request(method='GET', url=url)
+    url = f"{baseurl}/api?module=block&action=getblocknobytime&timestamp={unixtime}&closest={closest}&apikey={apikey}"
+    r = verify_request(method="GET", url=url)
     block = json.loads(r.text)['result']
     return block
 
 def get_tx_etherscan(txtype, address, contract, start_block, end_block, apikey, baseurl):
-  if txtype == 'erc20':
-    url = f'{baseurl}/api?module=account&action=tokentx&contractaddress={contract}&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}'
-  elif txtype == 'standard':
-    url = f'{baseurl}/api?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}'
+  if txtype == "erc20":
+    url = f"{baseurl}/api?module=account&action=tokentx&contractaddress={contract}&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
+  elif txtype == "standard":
+    url = f"{baseurl}/api?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
   else:
     raise ValueError("Unknown txtype:",txtype,". This is a bug.")
-  r = verify_request(method='GET', url=url)
+  r = verify_request(method="GET", url=url)
   return r.text
 
 def get_tx_etherscan_cf(txtype, address, contract, start_block, end_block, apikey, baseurl):
-  if txtype == 'erc20':
-    url = f'{baseurl}/api?module=account&action=tokentx&contractaddress={contract}&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}'
-  elif txtype == 'standard':
-    url = f'{baseurl}/api?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}'
+  if txtype == "erc20":
+    url = f"{baseurl}/api?module=account&action=tokentx&contractaddress={contract}&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
+  elif txtype == "standard":
+    url = f"{baseurl}/api?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
   else:
     print("Unknown txtype:",txtype,". This is a bug.")
     exit(1)
@@ -118,18 +120,18 @@ def get_tx_etherscan_cf(txtype, address, contract, start_block, end_block, apike
     'Dnt': '1'
   })
   s.headers = headers
-  r = verify_request(method='GET', url=url, headers=headers, session=s)
+  r = verify_request(method="GET", url=url, headers=headers, session=s)
   return r.text
 
 def get_tx_solana(txtype, address,start_time,end_time, offset, baseurl):
-  if txtype == 'spl':
-    url = f'{baseurl}/account/splTransfers?account={address}&fromTime={start_time}&toTime={end_time}&offset={offset}&limit=50'
-  elif txtype == 'standard':
-    url = f'{baseurl}/account/splTransfers?account={address}&fromTime={start_time}&toTime={end_time}&offset={offset}&limit=50'
+  if txtype == "spl":
+    url = f"{baseurl}/account/splTransfers?account={address}&fromTime={start_time}&toTime={end_time}&offset={offset}&limit=50"
+  elif txtype == "standard":
+    url = f"{baseurl}/account/splTransfers?account={address}&fromTime={start_time}&toTime={end_time}&offset={offset}&limit=50"
   else:
     raise ValueError("Unknown txtype:",txtype,". This is a bug.")
-  headers = {'accept': 'application/json'}
-  r = verify_request(method='GET', url=url, headers=headers)
+  headers = {"accept": "application/json"}
+  r = verify_request(method="GET", url=url, headers=headers)
   return r.text
 
 def sum_incoming_txs(type, address, txs, contract=None):
@@ -147,7 +149,7 @@ def sum_incoming_txs(type, address, txs, contract=None):
             if tx['owner'].lower() == address.lower() and tx['changeType'] == 'inc':
                 sum += int(tx['changeAmount']) / 10 ** int(tx['decimals'])
     else:
-        raise ValueError('Please enter valid tx type')
+        raise ValueError("Please enter valid tx type")
 
 def sum_incoming_txs_between(address,txs,start_time,end_time):
   txs_json = json.loads(txs)
@@ -166,6 +168,8 @@ def main():
     gc = pygsheets.authorize(service_file='./config/gc-credentials.json')
     sh = gc.open(config['sheet']+" "+year)
 
+    chain_list = config['chains']
+
     # Get Balances
     day_of_year = datetime.utcnow().timetuple().tm_yday
     # Assumes that each worksheet has 367/368 rows, one for each day of the year, starting with header row and then 12/31 of the previous year
@@ -175,21 +179,22 @@ def main():
     node_list = config['nodes']
     for entry in node_list:
         node = node_list[entry]
+        chain = chain_list[node['chain']]
         # Throws exception if request is valid but error in the return data
         try:
-            balance = get_balance(node['type'], node['url'], node['address'])
+            balance = get_balance(chain['type'], chain['rpc_url'], node['address'])
         except BaseException as e:
-            print('Request is not returning valid data:', e)
+            print("Request is not returning valid data:", e)
             continue
         if args.dry_run:
-            print(node['worksheet-title'],'Balance:',balance)
+            print(node['worksheet_title'],"Balance:",balance)
         else:
             # Assumes Date, Time, Balance as the first three columns
-            wks = sh.worksheet_by_title(node['worksheet-title'])
+            wks = sh.worksheet_by_title(node['worksheet_title'])
             wks.update_value((row_to_change,2),utc_time_str)
             wks.update_value((row_to_change,3),balance)
-
-    # Get Payments
+ 
+    # Get payment information
     wks = sh.worksheet_by_title(config["worksheets"]["payment"])
     wallet_list = config['wallets']
     # We need it to be the next day - snooze for 70s assuming the script starts at 23:59
@@ -208,32 +213,33 @@ def main():
     row_to_change = day_of_year + 1
     for entry in wallet_list:
         wallet = wallet_list[entry]
-        if wallet['provider'] == 'etherscan':
-            start_block = get_block_etherscan(start_unix,'after',wallet['apikey'],wallet['baseurl'])
-            end_block = get_block_etherscan(end_unix,'before',wallet['apikey'],wallet['baseurl'])
-            token_txs = get_tx_etherscan('erc20',wallet['address'],wallet['contract'],start_block,end_block,wallet['apikey'],wallet['baseurl'])
-            token_sum = sum_incoming_txs_between(wallet['address'],token_txs,start_unix,end_unix)
-        elif wallet['provider'] == 'etherscan-all-cf' or wallet['provider'] == 'etherscan-all':
+        chain = chain_list[wallet['chain']]
+        if chain['type'] == 'etherscan':
+            start_block = get_block_etherscan(start_unix,'after', chain['apikey'], chain['url'])
+            end_block = get_block_etherscan(end_unix,'before', chain['apikey'], chain['url'])
+            token_txs = get_tx_etherscan("erc20", wallet['address'], chain['token_contract'], start_block, end_block, chain['apikey'], chain['url'])
+            token_sum = sum_incoming_txs_between(wallet['address'], token_txs, start_unix, end_unix)
+        elif chain['type'] == 'etherscan-cf':
             start_block =  0
             end_block = 999999999
-            token_txs = get_tx_etherscan_cf('erc20',wallet['address'],wallet['contract'],start_block,end_block,wallet['apikey'],wallet['baseurl'])
-            token_sum = sum_incoming_txs_between(wallet['address'],token_txs,start_unix,end_unix)
-        elif wallet['provider'] == 'solana':
+            token_txs = get_tx_etherscan_cf("erc20", wallet['address'], chain['token_contract'], start_block, end_block, chain['apikey'], chain['url'])
+            token_sum = sum_incoming_txs_between(wallet['address'], token_txs, start_unix, end_unix)
+        elif chain['type'] == "solana":
             offset = 0
             token_sum = 0
             while True:
-                token_txs = get_tx_solana('spl',wallet['address'],start_unix,end_unix,offset,wallet['baseurl'])
+                token_txs = get_tx_solana("spl", wallet['address'], start_unix, end_unix, offset, chain['url'])
                 if not json.loads(token_txs)['data']:
                     break
-                token_sum += sum_incoming_txs('spl', wallet['address'],wallet['contract'],token_txs)
+                token_sum += sum_incoming_txs("spl", wallet['address'], chain['token_contract'], token_txs)
                 offset += 50
-        elif wallet['provider'] == 'nada':
+        elif chain['type'] == "terra":
             continue
         else:
-            raise ValueError('Unknown API provider',wallet['provider'],', please fix the wallet_list.')
+            raise ValueError("Unknown API provider",wallet['provider'],", please fix [wallets] in config.toml" )
         if token_sum > 0:
             if args.dry_run:
-                print(entry,'Payment:',token_sum)
+                print(entry,"Payment:",token_sum)
             else:
                 wks.update_value((row_to_change,wallet['column']),token_sum)
         sleep(3) # Avoid rate limits

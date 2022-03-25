@@ -11,33 +11,37 @@ coin = "Coin Daily Close"
 [apikeys]
 tiingo = "aVerySecretKey"
 
-# Used by get-chainlink-activity to get payment
-# Address of the wallet, contract address of the LINK token, column the payment should be recorded in on the payment sheet.
-# The "provider","baseurl" and "apikey" are for the chain explorer. Possible values for provider "etherscan", "etherscan-all-cf" (required if behind
-# CloudFlare, e.g. Optimism and Fantom explorers), "solana"
+# Used by get-chainlink-activity in conjunction with wallets and nodes. The entry here has to match the "chain" key
+# in those.
+# token_contract, address of the contract for the token you get paid in; type, chain explorer type, possible values "etherscan", "etherscan-cf" (required if behind
+# CloudFlare, e.g. Optimism and Fantom explorers), "solana", "terra"; url, base url for the chain explorer API endpoint; apikey, your API key with them
+# rpc_url, the URL of an RPC endpoint to query the chain. LCD for Terra.
+# Payment via multiple tokens on one chain is handled by duplicating the chain. That could be DRY'd out more.
+[chains]
+  [chains.ethereum]
+    "token_contract" = "0x514910771af9ca656af840dff83e8264ecf986ca"
+    "type" = "etherscan"
+    "url" = "https://api.etherscan.io"
+    "apikey" = "my-etherscan-apikey"
+    "rpc_url" = "http://myrpcnode"
+
+# Used by get-chainlink-activity to get payment information
+# Address of the wallet, column the payment should be recorded in on the payment sheet.
+# The "chain" should match an entry in [chains]
 [wallets]
   [wallets.ethereum]
     "address" = "0xmyETHaddress"
-    "contract" = "0x514910771af9ca656af840dff83e8264ecf986ca"
     "column" = "2"
-    "provider" = "etherscan"
-    "baseurl" = "https://api.etherscan.io"
-    "apikey"= "my-etherscan-apikey"
+    "chain" = "ethereum"
 
-# Used by get-chainlink-activity
-# Nodes for which to get balance information. Type of the RPC node to query, possible values are "evm", "sol" or "terra",
-# Worksheet Title for the node, URL of the RPC node to query, address of the account in the node.
-# The "provider","baseurl" and "apikey" would be for detecting funding, currently unused. Possible values for provider "etherscan", "etherscan-all-cf" (required if behind
-# CloudFlare, e.g. Optimism and Fantom explorers), "solana", "nada"
+# Used by get-chainlink-activity to get node balance
+# Worksheet Title for the node, address of the account in the node.
+# The "chain" should match an entry in [chains]
 [nodes]
   [nodes.main_ocr]
-    "type" = "evm"
-    "worksheet-title" = "Mainnet OCR"
-    "url" = "https://<my-rpc-node>"
+    "worksheet_title" = "Mainnet OCR"
     "address" = "0xmy-node-address"
-    "provider" = "etherscan"
-    "baseurl" = "https://api.etherscan.io"
-    "apikey" = "my-etherscan-apikey"
+    "chain" = "ethereum"
 
 # Used by get-closing-prices
 # Any coins to query, with their ticker as recognized by the API, column in the "coin" worksheet, and API provider to use
@@ -47,39 +51,7 @@ tiingo = "aVerySecretKey"
     "ticker" = "ethusd"
     "column" = "2"
     "provider" = "tiingo"
-  [coins.matic]
-    "ticker" = "maticusd"
-    "column" = "3"
-    "provider" = "tiingo"
-  [coins.ftm]
-    "ticker" = "ftmusd"
-    "column" = "4"
-    "provider" = "tiingo"
-  [coins.ht]
-    "ticker" = "htusd"
-    "column" = "5"
-    "provider" = "tiingo"
-  [coins.link]
-    "ticker" = "linkusd"
-    "column" = "6"
-    "provider" = "tiingo"
-  [coins.movr]
-    "ticker" = "movrusd"
-    "column" = "7"
-    "provider" = "tiingo"
-  [coins.sol]
-    "ticker" = "solusd"
-    "column" = "8"
-    "provider" = "tiingo"
   [coins.rpl]
     "ticker" = "rocket-pool"
     "column" = "9"
     "provider" = "coingecko"
-  [coins.usdc]
-    "ticker" = "usdcusd"
-    "column" = "10"
-    "provider" = "tiingo"
-  [coins.luna]
-    "ticker" = "lunausd"
-    "column" = "11"
-    "provider" = "tiingo"
