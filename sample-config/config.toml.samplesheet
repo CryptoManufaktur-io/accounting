@@ -1,0 +1,213 @@
+# Base name of the Google Sheet to use
+# The code assumes that there is one sheet per year, with a space and YYYY after,
+# e.g. "My Accounting 2022", "My Accounting 2023", etc. It will open the sheet
+# corresponding to the current year.
+sheet = "CL Accounting"
+
+[worksheets]
+payment = "All payments"
+coin = "Coin Daily Close"
+
+[apikeys]
+tiingo = "aVerySecretKey"
+
+# Used by get-chainlink-activity in conjunction with wallets and nodes. The entry here has to match the "chain" key
+# in those.
+# token_contract, address of the contract for the token you get paid in; type, chain explorer type, possible values "etherscan", "etherscan-cf" (required if behind
+# CloudFlare, e.g. Optimism and Fantom explorers), "solana", "terra"; url, base url for the chain explorer API endpoint; apikey, your API key with them
+# rpc_url, the URL of an RPC endpoint to query the chain. LCD for Terra.
+# Payment via multiple tokens on one chain is handled by duplicating the chain. That could be DRY'd out more.
+[chains]
+  [chains.ethereum]
+    "token_contract" = "0x514910771af9ca656af840dff83e8264ecf986ca"
+    "type" = "etherscan"
+    "url" = "https://api.etherscan.io"
+    "apikey" = "myApiKey"
+    "rpc_url" = "https://eth-main-a.example.com"
+  [chains.ethereum_rpl]
+    "token_contract" = "0xd33526068d116ce69f19a9ee46f0bd304f21a51f"
+    "type" = "etherscan"
+    "url" = "https://api.etherscan.io"
+    "apikey" = "myApiKey"
+    "rpc_url" = "https://eth-main-a.example.com"
+  [chains.polygon]
+    "token_contract" = "0xb0897686c545045afc77cf20ec7a532e3120e0f1"
+    "type" = "etherscan"
+    "url" = "https://api.polygonscan.com"
+    "apikey" = "myApiKey"
+    "rpc_url" = "https://polygon-a.example.com"
+  [chains.optimism]
+    "token_contract" = "0x350a791bfc2c21f9ed5d10980dad2e2638ffa7f6"
+    "type" = "etherscan-cf"
+    "url" = "https://api-optimistic.etherscan.io"
+    "apikey" = "myApiKey"
+    "rpc_url" = "https://optimism-a.example.com"
+  [chains.fantom]
+    "token_contract" = "0x6f43ff82cca38001b6699a8ac47a2d0e66939407"
+    "type" = "etherscan-cf"
+    "url" = "https://api.ftmscan.com"
+    "apikey" = "myApiKey"
+    "rpc_url" = "https://fantom-a.example.com"
+  [chains.huobi]
+    "token_contract" = "0x9e004545c59d359f6b7bfb06a26390b087717b42"
+    "type" = "etherscan"
+    "url" = "https://api.hecoinfo.com"
+    "apikey" = "myApiKey"
+    "rpc_url" = "https://heco-a.example.com"
+  [chains.moonriver]
+    "token_contract" = "0x8b12ac23bfe11cab03a634c1f117d64a7f2cfd3e"
+    "type" = "etherscan"
+    "url" = "https://api-moonriver.moonscan.io"
+    "apikey" = "myApiKey"
+    "rpc_url" = "https://moonriver-a.example.com"
+  [chains.solana]
+    "token_contract" = "AY2uKQZ21PGHoarsdnJ65xwJv1ojnM1Vn8UGMRpfZ2nX"
+    "type" = "solana"
+    "url" = "https://public-api.solscan.io"
+    "apikey" = ""
+    "rpc_url" = "https://solana-main-a.example.com"
+  [chains.terra]
+    "token_contract" = ""
+    "type" = "terra"
+    "url" = ""
+    "apikey" = ""
+    "rpc_url" = "https://terra-a.example.com"
+
+# Used by get-chainlink-activity to get payment information
+# Address of the wallet, column the payment should be recorded in on the payment sheet.
+# The "chain" should match an entry in [chains]
+[wallets]
+  [wallets.ethereum]
+    "address" = "myWalletAddress"
+    "column" = "2"
+    "chain" = "ethereum"
+  [wallets.polygon]
+    "address" = "myWalletAddress"
+    "column" = "4"
+    "chain" = "polygon"
+  [wallets.optimism]
+    "address" = "myWalletAddress"
+    "column" = "6"
+    "chain" = "optimism"
+  [wallets.fantom]
+    "address" = "myWalletAddress"
+    "column" = "8"
+    "chain" = "fantom"
+  [wallets.huobi]
+    "address" = "myWalletAddress"
+    "column" = "10"
+    "chain" = "huobi"
+  [wallets.moonriver]
+    "address" = "myWalletAddress"
+    "column" = "12"
+    "chain" = "moonriver"
+  [wallets.solana]
+    "address" = "myWalletAddress"
+    "column" = "14"
+    "chain" = "solana"
+  [wallets.terra]
+    "address" = "myWalletAddress"
+    "column" = "16"
+    "chain" = "terra"
+  [wallets.rocketpool]
+    "address" = "myWalletAddress"
+    "column" = "18"
+    "chain" = "ethereum_rpl"
+
+# Used by get-chainlink-activity to get node balance
+# Worksheet Title for the node, address of the account in the node.
+# The "chain" should match an entry in [chains]
+[nodes]
+  [nodes.main_ocr]
+    "worksheet_title" = "Mainnet OCR"
+    "address" = "0x9741569DEDB1E0cB204f2dF7f43f7a52bB49ba3A"
+    "chain" = "ethereum"
+  [nodes.main_keeper]
+    "worksheet_title" = "Mainnet OCR"
+    "address" = "0x7cb9ff1Ad03DB9D6CCBF99c2A1da872218467612"
+    "chain" = "ethereum"
+  [nodes.poly_ocr]
+    "worksheet_title" = "Polygon OCR"
+    "address" = "0xE6c27255Fbb9d3a9718Fb5E2DC313Cd6EbA10b78"
+    "chain" = "polygon"
+  [nodes.poly_fm]
+    "worksheet_title" = "Polygon FM"
+    "address" = "0x51FD7E0b225095A8826686aBf6C45fB739d2Bb7E"
+    "chain" = "polygon"
+  [nodes.poly_keeper]
+    "worksheet_title" = "Polygon Keeper"
+    "address" = "0x27c143A6B7CfADB4686c1d06e45EaB79B53f82B6"
+    "chain" = "polygon"
+  [nodes.opti_ocr]
+    "worksheet_title" = "Optimism OCR"
+    "address" = "0x2bdF9249c350C68a43a9714c1b9153af54751b1C"
+    "chain" = "optimism"
+  [nodes.fantom_ocr]
+    "worksheet_title" = "Fantom OCR"
+    "address" = "0xB2ffBb538558196e5Db351b33B647eFe654a9647"
+    "chain" = "fantom"
+  [nodes.heco_ocr]
+    "worksheet_title" = "HECO OCR"
+    "address" = "0xf82c8306C64EB9316B7Ad06cEb2015633DC9c098"
+    "chain" = "huobi"
+  [nodes.heco_fm]
+    "worksheet_title" = "HECO FM"
+    "address" = "0x518d71819c5Be920D6c9b4049Fae4123E46a4bAC"
+    "chain" = "huobi"
+  [nodes.moonriver_ocr]
+    "worksheet_title" = "Moonriver OCR"
+    "address" = "0xaa95a6b60d91dCd1c9c5551CF0D36953EA27d125"
+    "chain" = "moonriver"
+  [nodes.solana_ocr]
+    "worksheet_title" = "Solana OCR"
+    "address" = "9dcqpTqBJu2tiGPBrCZLXRx5REqWHSPWtjXjza9k63mc"
+    "chain" = "solana"
+  [nodes.terra_ocr]
+    "worksheet_title" = "Terra OCR"
+    "address" = "terra1rjff7wlt38hk9956hm043vs7k0g2mgpzf79m76"
+    "chain" = "terra"
+
+# Used by get-closing-prices
+# Any coins to query, with their ticker as recognized by the API, column in the "coin" worksheet, and API provider to use
+# Tiingo does not cause 429s and is faster than coingecko
+[coins]
+  [coins.eth]
+    "ticker" = "ethusd"
+    "column" = "2"
+    "provider" = "tiingo"
+  [coins.matic]
+    "ticker" = "maticusd"
+    "column" = "3"
+    "provider" = "tiingo"
+  [coins.ftm]
+    "ticker" = "ftmusd"
+    "column" = "4"
+    "provider" = "tiingo"
+  [coins.ht]
+    "ticker" = "htusd"
+    "column" = "5"
+    "provider" = "tiingo"
+  [coins.link]
+    "ticker" = "linkusd"
+    "column" = "6"
+    "provider" = "tiingo"
+  [coins.movr]
+    "ticker" = "movrusd"
+    "column" = "7"
+    "provider" = "tiingo"
+  [coins.sol]
+    "ticker" = "solusd"
+    "column" = "8"
+    "provider" = "tiingo"
+  [coins.rpl]
+    "ticker" = "rocket-pool"
+    "column" = "9"
+    "provider" = "coingecko"
+  [coins.usdc]
+    "ticker" = "usdcusd"
+    "column" = "10"
+    "provider" = "tiingo"
+  [coins.luna]
+    "ticker" = "lunausd"
+    "column" = "11"
+    "provider" = "tiingo"

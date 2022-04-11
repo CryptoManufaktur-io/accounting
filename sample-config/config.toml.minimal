@@ -51,7 +51,3 @@ tiingo = "aVerySecretKey"
     "ticker" = "ethusd"
     "column" = "2"
     "provider" = "tiingo"
-  [coins.rpl]
-    "ticker" = "rocket-pool"
-    "column" = "9"
-    "provider" = "coingecko"

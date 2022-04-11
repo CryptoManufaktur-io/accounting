@@ -1,3 +1,4 @@
 pygsheets
 numpy
 toml
+terra_sdk

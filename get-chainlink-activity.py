@@ -16,6 +16,7 @@ import json
 import csv
 import numpy as np
 import toml
+from terra_sdk.client.lcd import LCDClient
 
 # Assumes that google sheet credentials are in ./config/gc-credentials.json
 
@@ -34,21 +35,42 @@ def verify_request(method, url, payload=None, headers=None, session=None):
         else
             throws exception, exit program
     '''
-    try:
-        if method == "POST":
-            resp = requests.post(url, data=payload, headers=headers)
-        elif method == "GET" and session:
-            resp = session.get(url, headers=headers)
-        elif method == "GET" and not session:
-            resp = requests.get(url, headers=headers)
-        resp.raise_for_status()
-        return resp
-    except requests.exceptions.ConnectionError as errc:
-        print("Connection error:", errc)
-    except requests.exceptions.Timeout as errt:
-        print("Timeout error:", errt)
-    except requests.exceptions.RequestException as err:
-        print("Unexpected exception:",err)
+    for retry in range(1,4):
+        try:
+            if method == "POST":
+                resp = requests.post(url, data=payload, headers=headers)
+            elif method == "GET" and session:
+                resp = session.get(url, headers=headers)
+            elif method == "GET" and not session:
+                resp = requests.get(url, headers=headers)
+            resp.raise_for_status()
+            if retry > 1:
+                print("Querying",url,"succeeded on try #",retry)
+            return resp
+        except requests.exceptions.ConnectionError as errc:
+            print("Connection error:", errc)
+            if retry < 3:
+                print("Retrying, attempt #",retry+1)
+                sleep(retry*5)
+            else:
+                print("Failed on final try #",retry)
+            continue
+        except requests.exceptions.Timeout as errt:
+            print("Timeout error:", errt)
+            if retry < 3:
+                print("Retrying, attempt #",retry+1)
+                sleep(retry*5)
+            else:
+                print("Failed on final try #",retry)
+            continue
+        except requests.exceptions.RequestException as err:
+            print("Unexpected exception:",err)
+            if retry < 3:
+                print("Retrying, attempt #",retry+1)
+                sleep(retry*5)
+            else:
+                print("Failed on final try #",retry)
+            continue
 
 def get_balance(type, url, address):
     '''
@@ -83,8 +105,11 @@ def get_balance(type, url, address):
 def get_block_etherscan(unixtime, closest, apikey, baseurl):
     url = f"{baseurl}/api?module=block&action=getblocknobytime&timestamp={unixtime}&closest={closest}&apikey={apikey}"
     r = verify_request(method="GET", url=url)
-    block = json.loads(r.text)['result']
-    return block
+    try:
+        block = json.loads(r.text)['result']
+        return block
+    except Exception as e:
+        print("Failed to get block from",baseurl,r)
 
 def get_tx_etherscan(txtype, address, contract, start_block, end_block, apikey, baseurl):
   if txtype == "erc20":
@@ -150,6 +175,7 @@ def sum_incoming_txs(type, address, txs, contract=None):
                 sum += int(tx['changeAmount']) / 10 ** int(tx['decimals'])
     else:
         raise ValueError("Please enter valid tx type")
+    return sum
 
 def sum_incoming_txs_between(address,txs,start_time,end_time):
   txs_json = json.loads(txs)
@@ -218,22 +244,39 @@ def main():
             start_block = get_block_etherscan(start_unix,'after', chain['apikey'], chain['url'])
             end_block = get_block_etherscan(end_unix,'before', chain['apikey'], chain['url'])
             token_txs = get_tx_etherscan("erc20", wallet['address'], chain['token_contract'], start_block, end_block, chain['apikey'], chain['url'])
-            token_sum = sum_incoming_txs_between(wallet['address'], token_txs, start_unix, end_unix)
+            try:
+              token_sum = sum_incoming_txs_between(wallet['address'], token_txs, start_unix, end_unix)
+            except:
+              print("Error during",entry,"token sum, here's the tx blurb:", token_txs)
+              continue
         elif chain['type'] == 'etherscan-cf':
             start_block =  0
             end_block = 999999999
             token_txs = get_tx_etherscan_cf("erc20", wallet['address'], chain['token_contract'], start_block, end_block, chain['apikey'], chain['url'])
-            token_sum = sum_incoming_txs_between(wallet['address'], token_txs, start_unix, end_unix)
+            try:
+              token_sum = sum_incoming_txs_between(wallet['address'], token_txs, start_unix, end_unix)
+            except:
+              print("Error during",entry,"token sum, here's the tx blurb:", token_txs)
+              continue
         elif chain['type'] == "solana":
             offset = 0
             token_sum = 0
             while True:
                 token_txs = get_tx_solana("spl", wallet['address'], start_unix, end_unix, offset, chain['url'])
-                if not json.loads(token_txs)['data']:
+                try:
+                  if not json.loads(token_txs)['data']:
                     break
-                token_sum += sum_incoming_txs("spl", wallet['address'], chain['token_contract'], token_txs)
+                  token_sum += sum_incoming_txs("spl", wallet['address'], token_txs, chain['token_contract'])
+                except Exception as e:
+                  print("Error during Solana payment sum, here's the tx blurb:", token_txs)
+                  print("Exception was:",e)
+                  break
                 offset += 50
+                sleep(3) # Avoid rate limits 
         elif chain['type'] == "terra":
+            #terra = LCDClient(chain['url'], "columbus-5")
+            #token_txs = terra.tx.search([("tx.height",7549440),("message.sender", "terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v")])
+            #print(token_txs)
             continue
         else:
             raise ValueError("Unknown API provider",wallet['provider'],", please fix [wallets] in config.toml" )
