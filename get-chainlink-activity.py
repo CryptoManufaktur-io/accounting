@@ -159,9 +159,10 @@ def get_tx_solana(txtype, address,start_time,end_time, offset, baseurl):
   r = verify_request(method="GET", url=url, headers=headers)
   return r.text
 
-def sum_incoming_txs(type, address, txs, contract=None):
-    '''
-    Combines sum_incoming_sol_txs and sum_spl_txs
+def sum_incoming_sol_txs(type, address, txs, contract=None):
+    ''' 
+    Find payments in LINK tokens, or node funding in SOL. Note that
+    funding detection is currently disabled in the code.
     '''
     txs_json = json.loads(txs)
     sum = 0
@@ -177,7 +178,7 @@ def sum_incoming_txs(type, address, txs, contract=None):
         raise ValueError("Please enter valid tx type")
     return sum
 
-def sum_incoming_txs_between(address,txs,start_time,end_time):
+def sum_incoming_evm_txs_between(address,txs,start_time,end_time):
   txs_json = json.loads(txs)
   sum = 0
   if not txs_json['result']:
@@ -245,7 +246,7 @@ def main():
             end_block = get_block_etherscan(end_unix,'before', chain['apikey'], chain['url'])
             token_txs = get_tx_etherscan("erc20", wallet['address'], chain['token_contract'], start_block, end_block, chain['apikey'], chain['url'])
             try:
-              token_sum = sum_incoming_txs_between(wallet['address'], token_txs, start_unix, end_unix)
+              token_sum = sum_incoming_evm_txs_between(wallet['address'], token_txs, start_unix, end_unix)
             except:
               print("Error during",entry,"token sum, here's the tx blurb:", token_txs)
               continue
@@ -254,7 +255,7 @@ def main():
             end_block = 999999999
             token_txs = get_tx_etherscan_cf("erc20", wallet['address'], chain['token_contract'], start_block, end_block, chain['apikey'], chain['url'])
             try:
-              token_sum = sum_incoming_txs_between(wallet['address'], token_txs, start_unix, end_unix)
+              token_sum = sum_incoming_evm_txs_between(wallet['address'], token_txs, start_unix, end_unix)
             except:
               print("Error during",entry,"token sum, here's the tx blurb:", token_txs)
               continue
@@ -266,7 +267,7 @@ def main():
                 try:
                   if not json.loads(token_txs)['data']:
                     break
-                  token_sum += sum_incoming_txs("spl", wallet['address'], token_txs, chain['token_contract'])
+                  token_sum += sum_incoming_sol_txs("spl", wallet['address'], token_txs, chain['token_contract'])
                 except Exception as e:
                   print("Error during Solana payment sum, here's the tx blurb:", token_txs)
                   print("Exception was:",e)
@@ -298,13 +299,13 @@ def main():
             end_block = get_block_etherscan(end_unix, 'before', node['apikey'], node['baseurl'])
             txs = get_tx_etherscan('standard', node['address'], '', start_block, end_block, node['apikey'],
                                    node['baseurl'])
-            funding = sum_incoming_txs_between(node['address'], txs, start_unix, end_unix)
+            funding = sum_incoming_evm_txs_between(node['address'], txs, start_unix, end_unix)
         elif node['provider'] == 'etherscan-all-cf':
             start_block = 0
             end_block = 999999999
             txs = get_tx_etherscan_cf('standard', node['address'], '', start_block, end_block, node['apikey'],
                                       node['baseurl'])
-            funding = sum_incoming_txs_between(node['address'], txs, start_unix, end_unix)
+            funding = sum_incoming_evm_txs_between(node['address'], txs, start_unix, end_unix)
         elif node['provider'] == 'solana':
             offset = 0
             funding = 0
@@ -312,7 +313,7 @@ def main():
                 txs = get_tx_solana('standard', node['address'], start_unix, end_unix, offset, node['baseurl'])
                 if not json.loads(txs)['data']:
                     break
-                funding += sum_incoming_txs(node['address'], txs)
+                funding += sum_incoming_sol_txs(node['address'], txs)
                 offset += 50
         elif node['provider'] == 'nada':
             continue
