@@ -10,7 +10,6 @@ import toml
 # Assumes credentials are stored in ./gc-credentials.json
 config = toml.load("./config/config.toml")
 
-# List of coins
 coin_list = config['coins']
 
 def get_closing_price_tiingo(ticker):
@@ -24,7 +23,12 @@ def get_closing_price_coingecko(ticker):
   url = f"https://api.coingecko.com/api/v3/coins/{ticker}/history?date={yesterday_coingecko_str}?localization=false"
   headers = {"content-type": "application/json", "Accept-Charset": "UTF-8"}
   r = requests.get(url, headers=headers)
-  price = json.loads(r.text)['market_data']['current_price']['usd']
+  try:
+    price = json.loads(r.text)['market_data']['current_price']['usd']
+  except Exception as e:
+    print('Failed to load coin price response for',ticker,':',e)
+    print('Response in full:',r.text)
+    price = 0
   sleep(2) # Avoid 429s
   return(price)
 
