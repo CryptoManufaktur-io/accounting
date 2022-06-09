@@ -103,7 +103,7 @@ def get_balance(type, url, address):
     return balance
 
 def get_block_etherscan(unixtime, closest, apikey, baseurl):
-    url = f"{baseurl}/api?module=block&action=getblocknobytime&timestamp={unixtime}&closest={closest}&apikey={apikey}"
+    url = f"{baseurl}?module=block&action=getblocknobytime&timestamp={unixtime}&closest={closest}&apikey={apikey}"
     r = verify_request(method="GET", url=url)
     try:
         block = json.loads(r.text)['result']
@@ -113,19 +113,28 @@ def get_block_etherscan(unixtime, closest, apikey, baseurl):
 
 def get_tx_etherscan(txtype, address, contract, start_block, end_block, apikey, baseurl):
   if txtype == "erc20":
-    url = f"{baseurl}/api?module=account&action=tokentx&contractaddress={contract}&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
+    url = f"{baseurl}?module=account&action=tokentx&contractaddress={contract}&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
   elif txtype == "standard":
-    url = f"{baseurl}/api?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
+    url = f"{baseurl}?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
   else:
     raise ValueError("Unknown txtype:",txtype,". This is a bug.")
   r = verify_request(method="GET", url=url)
-  return r.text
+  try:
+    return r.text
+  except Exception as e:
+    print("get_tx_etherscan failed with ",e)
 
 def get_tx_etherscan_cf(txtype, address, contract, start_block, end_block, apikey, baseurl):
   if txtype == "erc20":
-    url = f"{baseurl}/api?module=account&action=tokentx&contractaddress={contract}&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
+    if not apikey:
+      url = f"{baseurl}?module=account&action=tokentx&contractaddress={contract}&address={address}&startblock={start_block}&endblock={end_block}"
+    else:
+      url = f"{baseurl}?module=account&action=tokentx&contractaddress={contract}&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
   elif txtype == "standard":
-    url = f"{baseurl}/api?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
+    if not apikey:
+      url = f"{baseurl}?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}"
+    else:
+      url = f"{baseurl}?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
   else:
     print("Unknown txtype:",txtype,". This is a bug.")
     exit(1)
@@ -146,7 +155,10 @@ def get_tx_etherscan_cf(txtype, address, contract, start_block, end_block, apike
   })
   s.headers = headers
   r = verify_request(method="GET", url=url, headers=headers, session=s)
-  return r.text
+  try:
+    return r.text
+  except Exception as e:
+    print("get_tx_etherscan_cf failed with ",e)
 
 def get_tx_solana(txtype, address,start_time,end_time, offset, baseurl):
   if txtype == "spl":
@@ -157,7 +169,10 @@ def get_tx_solana(txtype, address,start_time,end_time, offset, baseurl):
     raise ValueError("Unknown txtype:",txtype,". This is a bug.")
   headers = {"accept": "application/json"}
   r = verify_request(method="GET", url=url, headers=headers)
-  return r.text
+  try:
+    return r.text
+  except Exception as e:
+    print("get_tx_solana failed with ",e)
 
 def sum_incoming_sol_txs(type, address, txs, contract=None):
     ''' 
@@ -275,9 +290,13 @@ def main():
                 offset += 50
                 sleep(3) # Avoid rate limits 
         elif chain['type'] == "terra":
-            #terra = LCDClient(chain['url'], "columbus-5")
-            #token_txs = terra.tx.search([("tx.height",7549440),("message.sender", "terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v")])
-            #print(token_txs)
+  #          contracts_list = chain['contracts']
+            # If done manually it'd be something like curl 'https://terra-a.example.com/cosmos/tx/v1beta1/txs?pagination.limit=1000&events=message.contract%3D'\'terra1fr7g6n0xue60sytq72zrlteul7xvz8tzl3tnv6\'
+   #         terra = LCDClient(chain['url'], "columbus-5")
+    #        for contract in contracts_list:
+     #           token_txs = terra.tx.search([("pagination.limit", "1000"),("message.contract", contract)])
+      #          if token_txs['txs']:
+       #             print(token_txs['txs'])
             continue
         else:
             raise ValueError("Unknown API provider",wallet['provider'],", please fix [wallets] in config.toml" )

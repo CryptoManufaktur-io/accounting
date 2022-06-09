@@ -21,7 +21,7 @@ tiingo = "aVerySecretKey"
   [chains.ethereum]
     "token_contract" = "0x514910771af9ca656af840dff83e8264ecf986ca"
     "type" = "etherscan"
-    "url" = "https://api.etherscan.io"
+    "url" = "https://api.etherscan.io/api"
     "apikey" = "my-etherscan-apikey"
     "rpc_url" = "http://myrpcnode"
 
