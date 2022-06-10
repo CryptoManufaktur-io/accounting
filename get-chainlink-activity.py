@@ -118,7 +118,24 @@ def get_tx_etherscan(txtype, address, contract, start_block, end_block, apikey, 
     url = f"{baseurl}?module=account&action=txlist&address={address}&startblock={start_block}&endblock={end_block}&apikey={apikey}"
   else:
     raise ValueError("Unknown txtype:",txtype,". This is a bug.")
-  r = verify_request(method="GET", url=url)
+  # Working around CloudFlare triggering on the request
+  parsed_url = urlparse(baseurl)
+  host = parsed_url.netloc
+  s = Session()
+#  headers = {
+#    'Accept-Encoding': 'gzip, deflate, br',
+#    'Host': host,
+#    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
+#    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+#    'Accept-Language': 'en-GB,en;q=0.5',
+#    'Accept-Encoding': 'gzip, deflate',
+#    'Connection': 'close',
+#    'Upgrade-Insecure-Requests': '1',
+#    'Dnt': '1'
+#  }
+#  s.headers = headers
+#  r = verify_request(method="GET", url=url, headers=headers, session=s)
+  r = verify_request(method="GET", url=url, session=s)
   try:
     return r.text
   except Exception as e:
@@ -168,20 +185,8 @@ def get_tx_solana(txtype, address,start_time,end_time, offset, baseurl):
   else:
     raise ValueError("Unknown txtype:",txtype,". This is a bug.")
   # Working around CloudFlare triggering on the request
-  parsed_url = urlparse(baseurl)
-  host = parsed_url.netloc
   s = Session()
-  headers = OrderedDict({
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Host': host,
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-GB,en;q=0.5',
-    'Accept-Encoding': 'gzip, deflate',
-    'Connection': 'close',
-    'Upgrade-Insecure-Requests': '1',
-    'Dnt': '1'
-  })
+  headers = {"accept": "application/json"}
   s.headers = headers
   r = verify_request(method="GET", url=url, headers=headers, session=s)
   try:
@@ -294,7 +299,6 @@ def main():
             token_sum = 0
             while True:
                 token_txs = get_tx_solana("spl", wallet['address'], start_unix, end_unix, offset, chain['url'])
-                print(token_txs)
                 try:
                   if not json.loads(token_txs)['data']:
                     break
