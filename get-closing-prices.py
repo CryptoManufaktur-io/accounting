@@ -16,7 +16,12 @@ def get_closing_price_tiingo(ticker):
   url = f"https://api.tiingo.com/tiingo/daily/{ticker}/prices?startDate={yesterday_tiingo_str}&endDate={yesterday_tiingo_str}&token={config['apikeys']['tiingo']}"
   headers = {"content-type": "application/json", "Accept-Charset": "UTF-8"}
   r = requests.get(url, headers=headers)
-  price = json.loads(r.text)[0]['close']
+  try:
+    price = json.loads(r.text)[0]['close']
+  except Exception as e:
+    print('Failed to load coin price response for',ticker,':',e)
+    print('Response in full:',r.text)
+    price = 0
   return(price)
 
 def get_closing_price_coingecko(ticker):
@@ -34,6 +39,7 @@ def get_closing_price_coingecko(ticker):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dry-run", help="Print results and do not update Google sheet", action="store_true")
+parser.add_argument("date", help="Get prices for this date, must be format yyyy-mm-dd. Yesterday if not specified")
 args = parser.parse_args()
 
 year = datetime.utcnow().strftime("%Y")
@@ -41,7 +47,11 @@ gc = pygsheets.authorize(service_file="./config/gc-credentials.json")
 sh = gc.open(config['sheet']+" "+year)
 wks = sh.worksheet_by_title(config['worksheets']['coin'])
 
-yesterday = datetime.utcnow() - timedelta(days=1)
+if args.date:
+  yesterday = datetime.strptime(args.date,"%Y-%m-%d")
+  print("Getting data for",yesterday)
+else:
+  yesterday = datetime.utcnow() - timedelta(days=1)
 yesterday_tiingo_str = yesterday.strftime("%Y-%m-%d")
 yesterday_coingecko_str = yesterday.strftime("%d-%m-%Y")
 day_of_year = yesterday.timetuple().tm_yday
