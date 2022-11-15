@@ -66,8 +66,8 @@ def main():
         wks = sh.worksheet_by_title(node['worksheet_title'])
         data = wks.get_all_values()
         data.pop(0)
-        fee_export = [["Timestamp (UTC)","Type","Base Currency","Base Amount","Quote Currency (Optional)","Quote Amount (Optional)","Fee Currency (Optional)","Fee Amount (Optional)","From (Optional)","To (Optional)","Blockchain (Optional)","ID (Optional)","Description (Optional)"]]
-        funding_export = [["Timestamp (UTC)","Type","Base Currency","Base Amount","Quote Currency (Optional)","Quote Amount (Optional)","Fee Currency (Optional)","Fee Amount (Optional)","From (Optional)","To (Optional)","Blockchain (Optional)","ID (Optional)","Description (Optional)"]]
+        fee_export = [["Timestamp (UTC)","Type","Base Currency","Base Amount","Quote Currency (Optional)","Quote Amount (Optional)","Fee Currency (Optional)","Fee Amount (Optional)","From (Optional)","To (Optional)","Blockchain (Optional)","ID (Optional)","Description (Optional)","Reference Price Per Unit (Optional)","Reference Price Currency (Optional)"]]
+        funding_export = [["Timestamp (UTC)","Type","Base Currency","Base Amount","Quote Currency (Optional)","Quote Amount (Optional)","Fee Currency (Optional)","Fee Amount (Optional)","From (Optional)","To (Optional)","Blockchain (Optional)","ID (Optional)","Description (Optional)","Reference Price Per Unit (Optional)","Reference Price Currency (Optional)"]]
         export_idx = {'Timestamp':0,'Type':1,'Base':2,'Amount':3,'From':8,'To':9,'Blockchain':10,'Description':12}
         print("Working on",node['worksheet_title'])
         for row in data:
@@ -76,7 +76,7 @@ def main():
             timestamp = parse(row[0])
             if timestamp >= startdate and timestamp <= enddate and row[4] != "0":
                 timestamp += timedelta(hours=23, minutes=59)
-                export_row = [None]*13
+                export_row = [None]*15
                 export_row[export_idx['Timestamp']] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
                 export_row[export_idx['Type']] = "fee"
                 export_row[export_idx['Base']] = export_coin
@@ -85,9 +85,10 @@ def main():
                 export_row[export_idx['Blockchain']] = export_chain
                 export_row[export_idx['Description']] = "Gas fees"
                 fee_export.append(export_row)
+            timestamp = parse(row[0])
             if timestamp >= startdate and timestamp <= enddate and row[3]:
                 timestamp = parse(row[0] + " " + row[1])
-                export_row = [None]*13
+                export_row = [None]*15
                 export_row[export_idx['Timestamp']] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
                 export_row[export_idx['Type']] = "receive"
                 export_row[export_idx['Base']] = export_coin
