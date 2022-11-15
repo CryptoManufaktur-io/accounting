@@ -69,7 +69,7 @@ def main():
         fee_export = [["Timestamp (UTC)","Type","Base Currency","Base Amount","Quote Currency (Optional)","Quote Amount (Optional)","Fee Currency (Optional)","Fee Amount (Optional)","From (Optional)","To (Optional)","Blockchain (Optional)","ID (Optional)","Description (Optional)"]]
         funding_export = [["Timestamp (UTC)","Type","Base Currency","Base Amount","Quote Currency (Optional)","Quote Amount (Optional)","Fee Currency (Optional)","Fee Amount (Optional)","From (Optional)","To (Optional)","Blockchain (Optional)","ID (Optional)","Description (Optional)"]]
         export_idx = {'Timestamp':0,'Type':1,'Base':2,'Amount':3,'From':8,'To':9,'Blockchain':10,'Description':12}
-        print("Working on ",node['worksheet_title'])
+        print("Working on",node['worksheet_title'])
         for row in data:
             if not row[0]: # End of the sheet data or empty row ... erring on side of empty
                 continue
@@ -99,11 +99,14 @@ def main():
         with open(fee_csv_filename, 'w') as fee_csv_file:
             writer = csv.writer(fee_csv_file)
             writer.writerows(fee_export)
-            print("Fees in ",node['worksheet_title']," exported to ",fee_csv_filename)
+            print("Fees in",node['worksheet_title'],"exported to",fee_csv_filename)
+        if len(funding_export) == 1:
+            print("No funding events, skipping export for it")
+            continue
         with open(funding_csv_filename, 'w') as funding_csv_file:
             writer = csv.writer(funding_csv_file)
             writer.writerows(funding_export)
-            print("Funding in ",node['worksheet_title']," exported to ",funding_csv_filename)
+            print("Funding in",node['worksheet_title'],"exported to",funding_csv_filename)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(epilog="Sheet names for the nodes are defined in config/config.toml, and shared with get-chainlink-activity.py\nExported CSV files can be loaded into CryptoTaxCalculator and only contain fees, not funding", \
