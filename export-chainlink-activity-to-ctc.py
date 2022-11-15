@@ -20,8 +20,8 @@ def main():
     gc = pygsheets.authorize(service_file='./config/gc-credentials.json')
     sh = gc.open(config['sheet']+" "+year)
 
-# Each worksheet has date, time, balance, funding, fee burn
-# The advanced import is timestamp, type, base currency, base amount, quote currency, quote amount, fee currency, fee amount, from, to, blockchain, ID, Description
+# Each worksheet has date, funding time, balance, funding, fee burn
+# The advanced import for CTC is timestamp, type, base currency, base amount, quote currency, quote amount, fee currency, fee amount, from, to, blockchain, ID, Description
 # I need timestamp, type, base currency, base amount, blockchain, description
     node_list = config['nodes']
     for entry in node_list:
@@ -55,23 +55,26 @@ def main():
                 export_chain = None
                 export_coin = "MOVR"
             case "solana":
-                export_chain = Solana
+                export_chain = "Solana"
                 export_coin = "SOL"
             case _:
-                return "Unknown chain, don't know how to export"
+                print("Unknown chain, don't know how to export ",chain)
+                continue
 
-        csv_filename = "./" + node['worksheet_title'] + "-CTC Export-" + startdate.strftime("%Y-%m-%d") + "-to-" + enddate.strftime("%Y-%m-%d") + ".csv"
+        fee_csv_filename = "./" + node['worksheet_title'] + "-CTC Fee Export-" + startdate.strftime("%Y-%m-%d") + "-to-" + enddate.strftime("%Y-%m-%d") + ".csv"
+        funding_csv_filename = "./" + node['worksheet_title'] + "-CTC Funding Export-" + startdate.strftime("%Y-%m-%d") + "-to-" + enddate.strftime("%Y-%m-%d") + ".csv"
         wks = sh.worksheet_by_title(node['worksheet_title'])
-        df = wks.get_as_df()
         data = wks.get_all_values()
         data.pop(0)
-        export = [["Timestamp (UTC)","Type","Base Currency","Base Amount","Quote Currency (Optional)","Quote Amount (Optional)","Fee Currency (Optional)","Fee Amount (Optional)","From (Optional)","To (Optional)","Blockchain (Optional)","ID (Optional)","Description (Optional)"]]
-        export_idx = {'Timestamp':0,'Type':1,'Base':2,'Amount':3,'To':9,'Blockchain':10,'Description':12}
+        fee_export = [["Timestamp (UTC)","Type","Base Currency","Base Amount","Quote Currency (Optional)","Quote Amount (Optional)","Fee Currency (Optional)","Fee Amount (Optional)","From (Optional)","To (Optional)","Blockchain (Optional)","ID (Optional)","Description (Optional)"]]
+        funding_export = [["Timestamp (UTC)","Type","Base Currency","Base Amount","Quote Currency (Optional)","Quote Amount (Optional)","Fee Currency (Optional)","Fee Amount (Optional)","From (Optional)","To (Optional)","Blockchain (Optional)","ID (Optional)","Description (Optional)"]]
+        export_idx = {'Timestamp':0,'Type':1,'Base':2,'Amount':3,'From':8,'To':9,'Blockchain':10,'Description':12}
+        print("Working on ",node['worksheet_title'])
         for row in data:
             if not row[0]: # End of the sheet data or empty row ... erring on side of empty
                 continue
             timestamp = parse(row[0])
-            if timestamp >= startdate and timestamp <= enddate and row[4] != 0:
+            if timestamp >= startdate and timestamp <= enddate and row[4] != "0":
                 timestamp += timedelta(hours=23, minutes=59)
                 export_row = [None]*13
                 export_row[export_idx['Timestamp']] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
@@ -81,11 +84,26 @@ def main():
                 export_row[export_idx['To']] = "Chainlink Operations"
                 export_row[export_idx['Blockchain']] = export_chain
                 export_row[export_idx['Description']] = "Gas fees"
-                export.append(export_row)
-        with open(csv_filename, 'w') as csv_file:
-            writer = csv.writer(csv_file)
-            writer.writerows(export)
-            print("Data in ",node['worksheet_title']," exported to ",csv_filename)
+                fee_export.append(export_row)
+            if timestamp >= startdate and timestamp <= enddate and row[3]:
+                timestamp = parse(row[0] + " " + row[1])
+                export_row = [None]*13
+                export_row[export_idx['Timestamp']] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                export_row[export_idx['Type']] = "receive"
+                export_row[export_idx['Base']] = export_coin
+                export_row[export_idx['Amount']] = row[3]
+                export_row[export_idx['From']] = node['funded_by']
+                export_row[export_idx['Blockchain']] = export_chain
+                export_row[export_idx['Description']] = "Node funding"
+                funding_export.append(export_row)
+        with open(fee_csv_filename, 'w') as fee_csv_file:
+            writer = csv.writer(fee_csv_file)
+            writer.writerows(fee_export)
+            print("Fees in ",node['worksheet_title']," exported to ",fee_csv_filename)
+        with open(funding_csv_filename, 'w') as funding_csv_file:
+            writer = csv.writer(funding_csv_file)
+            writer.writerows(funding_export)
+            print("Funding in ",node['worksheet_title']," exported to ",funding_csv_filename)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(epilog="Sheet names for the nodes are defined in config/config.toml, and shared with get-chainlink-activity.py\nExported CSV files can be loaded into CryptoTaxCalculator and only contain fees, not funding", \
