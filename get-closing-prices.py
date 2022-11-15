@@ -39,7 +39,7 @@ def get_closing_price_coingecko(ticker):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dry-run", help="Print results and do not update Google sheet", action="store_true")
-parser.add_argument("date", help="Get prices for this date, must be format yyyy-mm-dd. Yesterday if not specified")
+parser.add_argument("date", nargs="?", help="Get prices for this date, must be format yyyy-mm-dd. Yesterday if not specified")
 args = parser.parse_args()
 
 year = datetime.utcnow().strftime("%Y")
