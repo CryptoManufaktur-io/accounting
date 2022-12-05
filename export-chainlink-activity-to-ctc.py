@@ -29,9 +29,11 @@ def main():
         if args.sheet and node['worksheet_title'] != args.sheet:
             continue
         chain = node['chain']
+        # export_chain is what "blockchain" should be set to in the CSV, to match what CTC expects
+        # export_coin is what "base currency" should be set to in the CSV
         match chain:
             case "binance":
-                export_chain = "Binance"
+                export_chain = "Binance Smart Chain"
                 export_coin = "BNB"
             case "ethereum" | "ethereum_rpl" | "ethereum_lido" | "ethereum_ssv":
                 export_chain = "Ethereum"
@@ -48,6 +50,9 @@ def main():
             case "huobi":
                 export_chain = None
                 export_coin = "HT"
+            case "klaytn":
+                export_chain = None
+                export_coin = "KLAY"
             case "metis":
                 export_chain = None
                 export_coin = "Metis"

@@ -85,7 +85,7 @@ def get_balance(type, url, address):
             exception
     '''
     headers = {"content-type": "application/json", "Accept-Charset": "UTF-8"}
-    if type == "etherscan" or type == "etherscan-cf":
+    if type == "etherscan" or type == "etherscan-cf" or type == "klaytn":
         payload = f'{{"jsonrpc":"2.0","method":"eth_getBalance","params":["{address}", "latest"],"id":1}}'
         r = verify_request(method='POST', url=url, payload=payload, headers=headers)
         balance = int(json.loads(r.text)['result'],16) / 1000000000000000000
@@ -233,6 +233,7 @@ def main():
     chain_list = config['chains']
 
     # Get Balances
+    # Assumes this is run at 23:59 UTC and that accounting happens on UTC
     day_of_year = datetime.utcnow().timetuple().tm_yday
     # Assumes that each worksheet has 367/368 rows, one for each day of the year, starting with header row and then 12/31 of the previous year
     row_to_change = day_of_year + 2
@@ -253,7 +254,7 @@ def main():
         else:
             # Assumes Date, Time, Balance as the first three columns
             wks = sh.worksheet_by_title(node['worksheet_title'])
-            wks.update_value((row_to_change,2),utc_time_str)
+            #wks.update_value((row_to_change,2),utc_time_str)
             wks.update_value((row_to_change,3),balance)
  
     # Get payment information
@@ -263,6 +264,7 @@ def main():
     if not args.dry_run:
         sleep(70)
 
+    # Assumes this is run at 23:59 UTC and that accounting happens on UTC
     today = datetime.utcnow()
     yesterday = datetime.utcnow() - timedelta(days=1)
     start = datetime(yesterday.year, yesterday.month, yesterday.day, 0, 0)
@@ -317,6 +319,8 @@ def main():
      #           token_txs = terra.tx.search([("pagination.limit", "1000"),("message.contract", contract)])
       #          if token_txs['txs']:
        #             print(token_txs['txs'])
+            continue
+        elif chain['type'] == "klaytn":
             continue
         else:
             raise ValueError("Unknown API provider",wallet['provider'],", please fix [wallets] in config.toml" )
