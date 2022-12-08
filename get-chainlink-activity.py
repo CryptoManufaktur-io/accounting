@@ -203,7 +203,9 @@ def sum_incoming_sol_txs(type, address, txs, contract=None):
     sum = 0
     if type == 'spl':
         for tx in txs_json['data']:
-            if tx['owner'].lower() == address.lower() and tx['tokenAddress'].lower() == contract.lower() and tx['changeType'] == 'inc':
+# This should work but I can see increases with dec and a positive change amount, so try for a pos change amount instead
+#            if tx['owner'].lower() == address.lower() and tx['tokenAddress'].lower() == contract.lower() and tx['changeType'] == 'inc':
+            if tx['owner'].lower() == address.lower() and tx['tokenAddress'].lower() == contract.lower() and int(tx['changeAmount']) > 0:
                 sum += int(tx['changeAmount']) / 10 ** int(tx['decimals'])
     elif type == 'sol':
         for tx in txs_json['data']:
