@@ -10,13 +10,17 @@ import toml
 from dateutil.parser import parse
 
 # Assumes that google sheet credentials are in ./config/gc-credentials.json
+# Assumes that start and end date are in the same year
 
 def main():
     startdate = parse(args.startdate)
     enddate = parse(args.enddate)
     config = toml.load("./config/config.toml")
+    if startdate.year != enddate.year:
+        print("Start and end date have to be in the same year")
+        exit(1)
     # Google Sheets
-    year = datetime.utcnow().strftime("%Y")
+    year = str(startdate.year)
     gc = pygsheets.authorize(service_file='./config/gc-credentials.json')
     sh = gc.open(config['sheet']+" "+year)
 
