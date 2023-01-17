@@ -58,10 +58,10 @@ def main():
                 export_chain = None
                 export_coin = "KLAY"
             case "metis":
-                export_chain = None
+                export_chain = "Metis"
                 export_coin = "Metis"
             case "moonriver":
-                export_chain = None
+                export_chain = "Moonriver"
                 export_coin = "MOVR"
             case "solana":
                 export_chain = "Solana"
