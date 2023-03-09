@@ -177,7 +177,7 @@ def get_tx_etherscan_cf(txtype, address, contract, start_block, end_block, apike
   except Exception as e:
     print("get_tx_etherscan_cf failed with ",e)
 
-def get_tx_solana(txtype, address,start_time,end_time, offset, baseurl):
+def get_tx_solana(txtype, address,start_time,end_time, offset, apikey, baseurl):
   if txtype == "spl":
     url = f"{baseurl}/account/splTransfers?account={address}&fromTime={start_time}&toTime={end_time}&offset={offset}&limit=50"
   elif txtype == "standard":
@@ -186,7 +186,7 @@ def get_tx_solana(txtype, address,start_time,end_time, offset, baseurl):
     raise ValueError("Unknown txtype:",txtype,". This is a bug.")
   # Working around CloudFlare triggering on the request
   s = Session()
-  headers = {"accept": "application/json"}
+  headers = {"accept": "application/json","token": apikey}
   s.headers = headers
   r = verify_request(method="GET", url=url, headers=headers, session=s)
   try:
@@ -302,7 +302,7 @@ def main():
             offset = 0
             token_sum = 0
             while True:
-                token_txs = get_tx_solana("spl", wallet['address'], start_unix, end_unix, offset, chain['url'])
+                token_txs = get_tx_solana("spl", wallet['address'], start_unix, end_unix, offset, chain['apikey'], chain['url'])
                 try:
                   if not json.loads(token_txs)['data']:
                     break
