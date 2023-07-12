@@ -10,6 +10,7 @@ coin = "Coin Daily Close"
 
 [apikeys]
 tiingo = "aVerySecretKey"
+#coingecko = "myProKey"
 
 # Used by get-chainlink-activity in conjunction with wallets and nodes. The entry here has to match the "chain" key
 # in those.

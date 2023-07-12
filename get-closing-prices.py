@@ -25,7 +25,11 @@ def get_closing_price_tiingo(ticker):
   return(price)
 
 def get_closing_price_coingecko(ticker):
-  url = f"https://api.coingecko.com/api/v3/coins/{ticker}/history?date={yesterday_coingecko_str}?localization=false"
+  coingecko_key = config.get('apikeys', {}).get('coingecko')
+  if coingecko_key is None:
+    url = f"https://api.coingecko.com/api/v3/coins/{ticker}/history?date={yesterday_coingecko_str}?localization=false"
+  else:
+    url = f"https://pro-api.coingecko.com/api/v3/coins/{ticker}/history?x_cg_pro_api_key={config['apikeys']['coingecko']}&date={yesterday_coingecko_str}?localization=false"
   headers = {"content-type": "application/json", "Accept-Charset": "UTF-8"}
   r = requests.get(url, headers=headers)
   try:
@@ -34,7 +38,8 @@ def get_closing_price_coingecko(ticker):
     print('Failed to load coin price response for',ticker,':',e)
     print('Response in full:',r.text)
     price = 0
-  sleep(2) # Avoid 429s
+  if coingecko_key is None:
+    sleep(2) # Avoid 429s
   return(price)
 
 parser = argparse.ArgumentParser()
