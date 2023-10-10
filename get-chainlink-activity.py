@@ -280,6 +280,8 @@ def main():
     for entry in wallet_list:
         wallet = wallet_list[entry]
         chain = chain_list[wallet['chain']]
+        if not chain['url']:
+            continue
         if chain['type'] == 'etherscan':
             start_block = get_block_etherscan(start_unix,'after', chain['apikey'], chain['url'])
             end_block = get_block_etherscan(end_unix,'before', chain['apikey'], chain['url'])
