@@ -45,6 +45,7 @@ def get_closing_price_coingecko(ticker):
 parser = argparse.ArgumentParser()
 parser.add_argument("--dry-run", help="Print results and do not update Google sheet", action="store_true")
 parser.add_argument("date", nargs="?", help="Get prices for this date, must be format yyyy-mm-dd. Yesterday if not specified")
+parser.add_argument("ticker", nargs="?", help="Get price for this ticker. All configured tickers if not specified")
 args = parser.parse_args()
 
 year = datetime.utcnow().strftime("%Y")
@@ -65,6 +66,8 @@ row_to_change = day_of_year + 1
 
 for entry in coin_list:
   coin = coin_list[entry]
+  if args.ticker and coin['ticker'] != args.ticker:
+    continue
   if coin['provider'] == "tiingo":
     price = get_closing_price_tiingo(coin['ticker'])
   elif coin['provider'] == "coingecko":
