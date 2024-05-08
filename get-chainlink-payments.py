@@ -234,31 +234,6 @@ def main():
 
     chain_list = config['chains']
 
-    # Get Balances
-    # Assumes this is run at 23:59 UTC and that accounting happens on UTC
-    day_of_year = datetime.utcnow().timetuple().tm_yday
-    # Assumes that each worksheet has 367/368 rows, one for each day of the year, starting with header row and then 12/31 of the previous year
-    row_to_change = day_of_year + 2
-    utc_time_str = datetime.utcnow().strftime("%H:%M")
-
-    node_list = config['nodes']
-    for entry in node_list:
-        node = node_list[entry]
-        chain = chain_list[node['chain']]
-        # Throws exception if request is valid but error in the return data
-        try:
-            balance = get_balance(chain['type'], chain['rpc_url'], node['address'])
-        except BaseException as e:
-            print("Request is not returning valid data:", e)
-            continue
-        if args.dry_run:
-            print(node['worksheet_title'],"Balance:",balance)
-        else:
-            # Assumes Date, Time, Balance as the first three columns
-            wks = sh.worksheet_by_title(node['worksheet_title'])
-            #wks.update_value((row_to_change,2),utc_time_str)
-            wks.update_value((row_to_change,3),balance)
- 
     # Get payment information
     wks = sh.worksheet_by_title(config["worksheets"]["payment"])
     wallet_list = config['wallets']
@@ -266,9 +241,14 @@ def main():
     if not args.dry_run:
         sleep(70)
 
-    # Assumes this is run at 23:59 UTC and that accounting happens on UTC
-    today = datetime.utcnow()
-    yesterday = datetime.utcnow() - timedelta(days=1)
+    # Assumes this is run the day after
+    if args.date:
+        today = datetime.strptime(args.date,"%Y-%m-%d") + timedelta(days=1)
+        print("Getting data for",today - timedelta(days=1))
+    else:
+        today = datetime.utcnow()
+
+    yesterday = today - timedelta(days=1)
     start = datetime(yesterday.year, yesterday.month, yesterday.day, 0, 0)
     end = datetime(today.year, today.month, today.day, 0, 0)
     start_unix = int(mktime(start.timetuple()))
@@ -378,5 +358,6 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", help="Print results and do not update Google sheet", action="store_true")
+    parser.add_argument("date", nargs="?", help="Get prices for this date, must be format yyyy-mm-dd. Today if not specified")
     args = parser.parse_args()
     main()
