@@ -72,36 +72,6 @@ def verify_request(method, url, payload=None, headers=None, session=None):
                 print("Failed on final try #",retry)
             continue
 
-def get_balance(type, url, address):
-    '''
-    Params:
-        type: node type (etherscan,etherscan-cf,solana,terra)
-        url: rpc url
-        address: wallet address
-    Returns:
-        if type is valid
-            balance
-        else
-            exception
-    '''
-    headers = {"content-type": "application/json", "Accept-Charset": "UTF-8"}
-    if type == "etherscan" or type == "etherscan-cf" or type == "klaytn":
-        payload = f'{{"jsonrpc":"2.0","method":"eth_getBalance","params":["{address}", "latest"],"id":1}}'
-        r = verify_request(method='POST', url=url, payload=payload, headers=headers)
-        balance = int(json.loads(r.text)['result'],16) / 1000000000000000000
-    elif type == "solana":
-        payload = f'{{"jsonrpc":"2.0","method":"getBalance","params":["{address}"],"id":1}}'
-        r = verify_request(method='POST', url=url, payload=payload, headers=headers)
-        balance = json.loads(r.text)['result']['value'] / 1000000000
-    elif type == "terra":
-        headers = {"accept": "application/json"}
-        url = f"{url}/cosmos/bank/v1beta1/balances/{address}/by_denom?denom=uluna"
-        r = verify_request(method='GET', url=url, headers=headers)
-        balance = int(json.loads(r.text)['balance']['amount']) / 1000000
-    else:
-        raise SystemExit("Please enter valid node type")
-    return balance
-
 def get_block_etherscan(unixtime, closest, apikey, baseurl):
     url = f"{baseurl}?module=block&action=getblocknobytime&timestamp={unixtime}&closest={closest}&apikey={apikey}"
     r = verify_request(method="GET", url=url)
@@ -237,23 +207,20 @@ def main():
     # Get payment information
     wks = sh.worksheet_by_title(config["worksheets"]["payment"])
     wallet_list = config['wallets']
-    # We need it to be the next day - snooze for 70s assuming the script starts at 23:59
-    if not args.dry_run:
-        sleep(70)
 
-    # Assumes this is run the day after
     if args.date:
-        today = datetime.strptime(args.date,"%Y-%m-%d") + timedelta(days=1)
-        print("Getting data for",today - timedelta(days=1))
+        queryday = datetime.strptime(args.date,"%Y-%m-%d")
     else:
-        today = datetime.utcnow()
+    # Assumes this is run the day after
+        queryday = datetime.utcnow() - timedelta(days=1)
 
-    yesterday = today - timedelta(days=1)
-    start = datetime(yesterday.year, yesterday.month, yesterday.day, 0, 0)
-    end = datetime(today.year, today.month, today.day, 0, 0)
+    start = datetime(queryday.year, queryday.month, queryday.day, 0, 0, 0)
+    end = datetime(queryday.year, queryday.month, queryday.day, 23, 59, 59)
+    if args.dry_run:
+        print("Getting data from",start,"to",end)
     start_unix = int(mktime(start.timetuple()))
     end_unix = int(mktime(end.timetuple()))
-    day_of_year = yesterday.timetuple().tm_yday
+    day_of_year = queryday.timetuple().tm_yday
 
     # Assumes the worksheet has 366/367 rows, one for each day of the year, starting with header row and then 1/1 of the current year
     row_to_change = day_of_year + 1
