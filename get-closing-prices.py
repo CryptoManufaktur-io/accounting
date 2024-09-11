@@ -5,11 +5,14 @@ import datetime
 from time import sleep
 import requests
 import json
-import tomli
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 
 # Assumes credentials are stored in ./config/gc-credentials.json
 with open("./config/config.toml", "rb") as f:
-  config = tomli.load(f)
+  config = tomllib.load(f)
 
 coin_list = config['coins']
 

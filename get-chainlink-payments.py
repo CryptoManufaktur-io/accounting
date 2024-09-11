@@ -15,7 +15,10 @@ from urllib.parse import urlparse
 import json
 import csv
 import numpy as np
-import tomli
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 from terra_sdk.client.lcd import LCDClient
 
 # Assumes that google sheet credentials are in ./config/gc-credentials.json
@@ -228,7 +231,7 @@ def sum_incoming_evm_txs_between(address,txs,start_time,end_time):
 
 def main():
     with open("./config/config.toml", "rb") as f:
-        config = tomli.load(f)
+        config = tomllib.load(f)
     # Google Sheets
     year = datetime.datetime.now(datetime.UTC).strftime("%Y")
     gc = pygsheets.authorize(service_file='./config/gc-credentials.json')
