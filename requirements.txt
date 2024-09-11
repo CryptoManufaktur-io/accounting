@@ -1,5 +1,5 @@
 pygsheets
 numpy
-toml
+tomli
 terra_sdk
 setuptools

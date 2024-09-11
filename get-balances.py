@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 import json
 import csv
 import numpy as np
-import toml
+import tomli
 from terra_sdk.client.lcd import LCDClient
 
 # Assumes that google sheet credentials are in ./config/gc-credentials.json
@@ -103,7 +103,8 @@ def get_balance(type, url, address):
     return balance
 
 def main():
-    config = toml.load("./config/config.toml")
+    with open("./config/config.toml", "rb") as f:
+        config = tomli.load(f)
     # Google Sheets
     year = datetime.datetime.now(datetime.UTC).strftime("%Y")
     gc = pygsheets.authorize(service_file='./config/gc-credentials.json')
