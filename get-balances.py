@@ -6,7 +6,7 @@
 # the data into a separate sheet for tax purposes.
 import argparse
 import pygsheets
-from datetime import datetime, date, timedelta
+import datetime
 from time import sleep, mktime
 import requests
 from collections import OrderedDict
@@ -75,7 +75,7 @@ def verify_request(method, url, payload=None, headers=None, session=None):
 def get_balance(type, url, address):
     '''
     Params:
-        type: node type (etherscan,etherscan-cf,solana,terra)
+        type: node type (etherscan,etherscan-cf,oklink,solana)
         url: rpc url
         address: wallet address
     Returns:
@@ -85,7 +85,7 @@ def get_balance(type, url, address):
             exception
     '''
     headers = {"content-type": "application/json", "Accept-Charset": "UTF-8"}
-    if type == "etherscan" or type == "etherscan-cf" or type == "klaytn":
+    if type == "etherscan" or type == "etherscan-cf" or type == "klaytn" or type == "oklink":
         payload = f'{{"jsonrpc":"2.0","method":"eth_getBalance","params":["{address}", "latest"],"id":1}}'
         r = verify_request(method='POST', url=url, payload=payload, headers=headers)
         balance = int(json.loads(r.text)['result'],16) / 1000000000000000000
@@ -105,7 +105,7 @@ def get_balance(type, url, address):
 def main():
     config = toml.load("./config/config.toml")
     # Google Sheets
-    year = datetime.utcnow().strftime("%Y")
+    year = datetime.datetime.now(datetime.UTC).strftime("%Y")
     gc = pygsheets.authorize(service_file='./config/gc-credentials.json')
     sh = gc.open(config['sheet']+" "+year)
 
@@ -113,10 +113,10 @@ def main():
 
     # Get Balances
     # Assumes this is run at 23:59 UTC and that accounting happens on UTC
-    day_of_year = datetime.utcnow().timetuple().tm_yday
+    day_of_year = datetime.datetime.now(datetime.UTC).timetuple().tm_yday
     # Assumes that each worksheet has 367/368 rows, one for each day of the year, starting with header row and then 12/31 of the previous year
     row_to_change = day_of_year + 2
-    utc_time_str = datetime.utcnow().strftime("%H:%M")
+    utc_time_str = datetime.datetime.now(datetime.UTC).strftime("%H:%M")
 
     node_list = config['nodes']
     for entry in node_list:

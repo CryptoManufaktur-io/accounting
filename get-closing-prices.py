@@ -1,7 +1,7 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import argparse
 import pygsheets
-from datetime import datetime, date, timedelta
+import datetime
 from time import sleep
 import requests
 import json
@@ -48,16 +48,17 @@ parser.add_argument("date", nargs="?", help="Get prices for this date, must be f
 parser.add_argument("ticker", nargs="?", help="Get price for this ticker. All configured tickers if not specified")
 args = parser.parse_args()
 
-year = datetime.utcnow().strftime("%Y")
+if args.date:
+  yesterday = datetime.datetime.strptime(args.date,"%Y-%m-%d")
+  print("Getting data for", yesterday)
+else:
+  yesterday = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1)
+
+year = yesterday.strftime("%Y")
 gc = pygsheets.authorize(service_file="./config/gc-credentials.json")
 sh = gc.open(config['sheet']+" "+year)
 wks = sh.worksheet_by_title(config['worksheets']['coin'])
 
-if args.date:
-  yesterday = datetime.strptime(args.date,"%Y-%m-%d")
-  print("Getting data for",yesterday)
-else:
-  yesterday = datetime.utcnow() - timedelta(days=1)
 yesterday_tiingo_str = yesterday.strftime("%Y-%m-%d")
 yesterday_coingecko_str = yesterday.strftime("%d-%m-%Y")
 day_of_year = yesterday.timetuple().tm_yday

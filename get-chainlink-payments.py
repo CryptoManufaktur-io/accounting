@@ -6,7 +6,7 @@
 # the data into a separate sheet for tax purposes.
 import argparse
 import pygsheets
-from datetime import datetime, date, timedelta
+import datetime
 from time import sleep, mktime
 import requests
 from collections import OrderedDict
@@ -147,6 +147,37 @@ def get_tx_etherscan_cf(txtype, address, contract, start_block, end_block, apike
   except Exception as e:
     print("get_tx_etherscan_cf failed with ",e)
 
+def get_tx_oklink(chain, txtype, address, contract, start_block, end_block, apikey, baseurl):
+  if txtype == "erc20":
+    url = f"{baseurl}/explorer/address/token-transaction-list?chainShortName={chain}&address={address}&protocolType=token_20&tokenContractAddress={contract}&startBlockHeight={start_block}&endBlockHeight={end_block}"
+  elif txtype == "standard":
+    url = f"{baseurl}/explorer/address/normal-transaction-list?chainShortName={chain}&address={address}&startBlockHeight={start_block}&endBlockHeight={end_block}"
+  else:
+    print("Unknown txtype:",txtype,". This is a bug.")
+    exit(1)
+  # Working around CloudFlare triggering on the request
+  parsed_url = urlparse(baseurl)
+  host = parsed_url.netloc
+  s = Session()
+  headers = OrderedDict({
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Host': host,
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-GB,en;q=0.5',
+    'Accept-Encoding': 'gzip, deflate',
+    'Connection': 'close',
+    'Upgrade-Insecure-Requests': '1',
+    'Dnt': '1',
+    'OK-ACCESS-KEY': {apikey}
+  })
+  s.headers = headers
+  r = verify_request(method="GET", url=url, headers=headers, session=s)
+  try:
+    return r.text
+  except Exception as e:
+    print("get_tx_oklink failed with ",e)
+
 def get_tx_solana(txtype, address,start_time,end_time, offset, apikey, baseurl):
   if txtype == "spl":
     url = f"{baseurl}/account/splTransfers?account={address}&fromTime={start_time}&toTime={end_time}&offset={offset}&limit=50"
@@ -198,7 +229,7 @@ def sum_incoming_evm_txs_between(address,txs,start_time,end_time):
 def main():
     config = toml.load("./config/config.toml")
     # Google Sheets
-    year = datetime.utcnow().strftime("%Y")
+    year = datetime.datetime.now(datetime.UTC).strftime("%Y")
     gc = pygsheets.authorize(service_file='./config/gc-credentials.json')
     sh = gc.open(config['sheet']+" "+year)
 
@@ -209,13 +240,13 @@ def main():
     wallet_list = config['wallets']
 
     if args.date:
-        queryday = datetime.strptime(args.date,"%Y-%m-%d")
+        queryday = datetime.datetime.strptime(args.date,"%Y-%m-%d")
     else:
     # Assumes this is run the day after
-        queryday = datetime.utcnow() - timedelta(days=1)
+        queryday = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1)
 
-    start = datetime(queryday.year, queryday.month, queryday.day, 0, 0, 0)
-    end = datetime(queryday.year, queryday.month, queryday.day, 23, 59, 59)
+    start = datetime.datetime(queryday.year, queryday.month, queryday.day, 0, 0, 0)
+    end = datetime.datetime(queryday.year, queryday.month, queryday.day, 23, 59, 59)
     if args.dry_run:
         print("Getting data from",start,"to",end)
     start_unix = int(mktime(start.timetuple()))
